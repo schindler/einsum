@@ -1,0 +1,103 @@
+# Minimal Einstein-summation Install
+
+## macOS Build Check With Docker
+
+macOS cannot compile or run CUDA/cuTENSOR code directly. Use the provided
+Dockerfile to build inside a Linux CUDA 11.4 image with cuTENSOR 1.3.3.2 and
+mount this project as a shared folder:
+
+```bash
+docker build -t einsum-cuda-builder .
+docker run --rm -v "$PWD:/workspace" einsum-cuda-builder make
+```
+
+The Dockerfile defaults to `linux/amd64` because NVIDIA's cuTENSOR 1.3.3.2
+redist archive used here is the x86_64 package. On Apple Silicon, Docker may
+print a host-platform warning before building or running the container.
+
+The output executable is written into the mounted project folder:
+
+```text
+./einsum
+```
+
+To open a shell in the same build environment:
+
+```bash
+docker run --rm -it -v "$PWD:/workspace" einsum-cuda-builder bash
+```
+
+Runtime execution still requires a Linux host with an NVIDIA GPU, driver, and
+NVIDIA Container Toolkit:
+
+```bash
+docker run --rm --gpus all -it -v "$PWD:/workspace" einsum-cuda-builder ./einsum
+```
+
+## Native Linux Requirements
+
+Build on Linux with:
+
+```text
+CUDA Toolkit 11.x
+cuTENSOR 1.3.3
+```
+
+The Makefile expects the cuTENSOR archive layout under `/opt/cutensor` by
+default. Install cuTENSOR 1.3.3.2 from NVIDIA's redist archive:
+
+```bash
+wget https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-x86_64/libcutensor-linux-x86_64-1.3.3.2-archive.tar.xz
+sudo mkdir -p /opt
+sudo tar -xJf libcutensor-linux-x86_64-1.3.3.2-archive.tar.xz -C /opt
+sudo mv /opt/libcutensor-linux-x86_64-1.3.3.2-archive /opt/cutensor
+export CUTENSOR_HOME=/opt/cutensor
+export LD_LIBRARY_PATH=/opt/cutensor/lib/11:$LD_LIBRARY_PATH
+```
+
+Install a CUDA 11 toolkit separately. For Ubuntu 20.04 with NVIDIA's CUDA apt
+repository enabled, one compatible option is:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y cuda-toolkit-11-4
+```
+
+## Build
+
+The Makefile assumes:
+
+```text
+CUDA_HOME=/usr/local/cuda
+CUTENSOR_HOME=/opt/cutensor
+```
+
+Build:
+
+```bash
+make
+```
+
+Override paths when libraries are installed elsewhere:
+
+```bash
+make CUDA_HOME=/path/to/cuda CUTENSOR_HOME=/path/to/cutensor
+```
+
+## Run
+
+```bash
+./einsum
+```
+
+Starter commands:
+
+```text
+A = load data/A.txt
+B = load data/B.txt
+C = einsum ij,jk->ik A B
+show C
+show C --output=data/C.bin
+```
+
+Use `help` inside the prompt for all supported commands and einsum examples.

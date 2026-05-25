@@ -1,0 +1,4 @@
+# 2x3 matrix for ij,jk->ik
+dims 2x3
+1 2 3
+4 5 6
